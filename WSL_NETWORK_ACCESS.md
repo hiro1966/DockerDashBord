@@ -170,6 +170,28 @@ wsl --shutdown
 
 ## 🔍 トラブルシューティング
 
+### 複数のIPアドレスが返される場合
+
+WSL2が複数のIPアドレスを返す場合（例: `172.23.169.170 172.19.0.1 172.18.0.1 172.17.0.1`）：
+
+- **最初のIPアドレス**（例: `172.23.169.170`）がWSL2のメインIPアドレスです
+- その他のIPアドレスはDockerブリッジネットワークなどの仮想ネットワークです
+- スクリプトは自動的に最初のIPアドレスのみを使用します
+
+手動で確認する場合：
+
+```bash
+# WSL2内で実行
+hostname -I | awk '{print $1}'
+```
+
+または
+
+```bash
+# メインネットワークインターフェース（eth0）のIPのみ取得
+ip addr show eth0 | grep "inet\b" | awk '{print $2}' | cut -d/ -f1
+```
+
 ### ポートフォワーディングが機能しない
 
 #### 1. WSL2のIPアドレスを確認
@@ -253,20 +275,42 @@ Get-NetIPAddress -AddressFamily IPv4 -InterfaceAlias "Wi-Fi*","Ethernet*" | Sele
 
 ## ⚡ クイックセットアップ（コピペ用）
 
+### 方法A: スクリプトを使用（推奨）
+
+PowerShellを管理者権限で開いて、プロジェクトディレクトリで実行：
+
+```powershell
+cd C:\path\to\DockerDashBord
+.\wsl-port-forward.ps1
+```
+
+### 方法B: 手動コマンド
+
 PowerShellを管理者権限で開いて、以下を実行：
 
 ```powershell
-# WSL2のIPアドレスを取得して設定
-$wsl_ip = (wsl hostname -I).trim()
+# WSL2のメインIPアドレスを取得（最初のIPのみ）
+$wsl_ip = (wsl hostname -I).trim().Split()[0]
+Write-Host "WSL2 IP: $wsl_ip"
+
+# 既存設定を削除
 netsh interface portproxy delete v4tov4 listenport=3000 listenaddress=0.0.0.0 2>$null
 netsh interface portproxy delete v4tov4 listenport=4000 listenaddress=0.0.0.0 2>$null
+
+# ポートフォワーディング設定
 netsh interface portproxy add v4tov4 listenport=3000 listenaddress=0.0.0.0 connectport=3000 connectaddress=$wsl_ip
 netsh interface portproxy add v4tov4 listenport=4000 listenaddress=0.0.0.0 connectport=4000 connectaddress=$wsl_ip
+
+# ファイアウォール設定
 New-NetFirewallRule -DisplayName "WSL Dashboard 3000" -Direction Inbound -LocalPort 3000 -Protocol TCP -Action Allow -ErrorAction SilentlyContinue
 New-NetFirewallRule -DisplayName "WSL GraphQL 4000" -Direction Inbound -LocalPort 4000 -Protocol TCP -Action Allow -ErrorAction SilentlyContinue
+
+# 確認
 Write-Host "Setup complete! WSL2 IP: $wsl_ip"
 netsh interface portproxy show all
 ```
+
+**注意**: WSL2は複数のIPアドレスを返すことがありますが、`.Split()[0]` で最初のIPアドレス（メインIP）のみを使用します。
 
 ---
 

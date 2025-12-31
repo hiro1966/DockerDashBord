@@ -69,9 +69,34 @@ docker-compose up -d
 
 各サービスが起動したら、以下のURLにアクセスできます：
 
-- **ダッシュボード**: http://localhost:3000
+- **ダッシュボード**: http://localhost:3000?staffId=admin001
 - **GraphQL Playground**: http://localhost:4000/graphql
 - **PostgreSQL**: localhost:5432
+
+### 🌐 他のパソコンからアクセスする
+
+#### 通常のDocker環境
+詳細は [NETWORK_ACCESS.md](./NETWORK_ACCESS.md) を参照してください。
+
+#### WSL2環境（Windows）
+**WSL2で動かしている場合は特別な設定が必要です！**
+
+PowerShellを管理者権限で開いて実行：
+
+```powershell
+cd C:\path\to\DockerDashBord
+.\wsl-port-forward.ps1
+```
+
+または手動設定：
+
+```powershell
+$wsl_ip = (wsl hostname -I).trim().Split()[0]
+netsh interface portproxy add v4tov4 listenport=3000 listenaddress=0.0.0.0 connectport=3000 connectaddress=$wsl_ip
+netsh interface portproxy add v4tov4 listenport=4000 listenaddress=0.0.0.0 connectport=4000 connectaddress=$wsl_ip
+```
+
+詳細は [WSL_NETWORK_ACCESS.md](./WSL_NETWORK_ACCESS.md) を参照してください。
 
 4. **ログの確認**
 ```bash

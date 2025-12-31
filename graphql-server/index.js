@@ -87,6 +87,44 @@ const typeDefs = `
     totalDischarge: Int!
   }
 
+  type Permission {
+    jobTypeCode: String!
+    jobTypeName: String!
+    level: Int!
+  }
+
+  type Staff {
+    id: String!
+    name: String!
+    jobTypeCode: String!
+    permission: Permission!
+    createdAt: String!
+  }
+
+  type Doctor {
+    code: String!
+    name: String!
+    departmentCode: String!
+    department: Department!
+    createdAt: String!
+  }
+
+  type Sales {
+    doctorCode: String!
+    yearMonth: String!
+    outpatientSales: Float!
+    inpatientSales: Float!
+    totalSales: Float!
+    updatedAt: String!
+  }
+
+  type SalesSummary {
+    yearMonth: String!
+    totalOutpatientSales: Float!
+    totalInpatientSales: Float!
+    totalSales: Float!
+  }
+
   type Query {
     # マスタデータ
     departments: [Department!]!
@@ -101,6 +139,16 @@ const typeDefs = `
     inpatientRecords(startDate: String, endDate: String, wardId: Int, departmentId: Int): [InpatientRecord!]!
     inpatientSummary(startDate: String, endDate: String): [InpatientSummary!]!
     inpatientByWard(startDate: String, endDate: String): [InpatientByWard!]!
+    
+    # 認証
+    verifyStaff(staffId: String!): Staff
+    
+    # 売上データ
+    doctors: [Doctor!]!
+    doctorsByDepartment(departmentCode: String!): [Doctor!]!
+    salesSummary(startMonth: String, endMonth: String): [SalesSummary!]!
+    salesByDoctor(doctorCode: String!, startMonth: String, endMonth: String): [Sales!]!
+    salesByDepartment(departmentCode: String!, startMonth: String, endMonth: String): [SalesSummary!]!
   }
 `
 
@@ -486,6 +534,183 @@ const resolvers = {
       )
 
       return wards
+    },
+
+    // 職員認証
+    verifyStaff: async (_, { staffId }) => {
+      const result = await pool.query(`
+        SELECT s.*, p.job_type_name, p.level
+        FROM staff s
+        JOIN permissions p ON s.job_type_code = p.job_type_code
+        WHERE s.id = $1
+      `, [staffId])
+
+      if (result.rows.length === 0) {
+        return null
+      }
+
+      const row = result.rows[0]
+      return {
+        id: row.id,
+        name: row.name,
+        jobTypeCode: row.job_type_code,
+        permission: {
+          jobTypeCode: row.job_type_code,
+          jobTypeName: row.job_type_name,
+          level: row.level,
+        },
+        createdAt: row.created_at.toISOString(),
+      }
+    },
+
+    // 医師一覧取得
+    doctors: async () => {
+      const result = await pool.query(`
+        SELECT d.*, dept.id as dept_id, dept.code as dept_code, dept.name as dept_name, 
+               dept.display_order as dept_display_order, dept.created_at as dept_created_at
+        FROM doctors d
+        JOIN departments dept ON d.department_code = dept.code
+        ORDER BY dept.display_order, dept.code, d.name
+      `)
+      
+      return result.rows.map(row => ({
+        code: row.code,
+        name: row.name,
+        departmentCode: row.department_code,
+        department: {
+          id: row.dept_id,
+          code: row.dept_code,
+          name: row.dept_name,
+          displayOrder: row.dept_display_order,
+          createdAt: row.dept_created_at.toISOString(),
+        },
+        createdAt: row.created_at.toISOString(),
+      }))
+    },
+
+    // 診療科別医師一覧取得
+    doctorsByDepartment: async (_, { departmentCode }) => {
+      const result = await pool.query(`
+        SELECT d.*, dept.id as dept_id, dept.code as dept_code, dept.name as dept_name,
+               dept.display_order as dept_display_order, dept.created_at as dept_created_at
+        FROM doctors d
+        JOIN departments dept ON d.department_code = dept.code
+        WHERE d.department_code = $1
+        ORDER BY d.name
+      `, [departmentCode])
+      
+      return result.rows.map(row => ({
+        code: row.code,
+        name: row.name,
+        departmentCode: row.department_code,
+        department: {
+          id: row.dept_id,
+          code: row.dept_code,
+          name: row.dept_name,
+          displayOrder: row.dept_display_order,
+          createdAt: row.dept_created_at.toISOString(),
+        },
+        createdAt: row.created_at.toISOString(),
+      }))
+    },
+
+    // 売上サマリー取得
+    salesSummary: async (_, { startMonth, endMonth }) => {
+      let query = `
+        SELECT 
+          year_month,
+          SUM(outpatient_sales) as total_outpatient,
+          SUM(inpatient_sales) as total_inpatient
+        FROM sales
+        WHERE 1=1
+      `
+      const params = []
+      let paramCount = 1
+
+      if (startMonth) {
+        query += ` AND year_month >= $${paramCount++}`
+        params.push(startMonth)
+      }
+      if (endMonth) {
+        query += ` AND year_month <= $${paramCount++}`
+        params.push(endMonth)
+      }
+
+      query += ' GROUP BY year_month ORDER BY year_month'
+
+      const result = await pool.query(query, params)
+      return result.rows.map(row => ({
+        yearMonth: row.year_month,
+        totalOutpatientSales: parseFloat(row.total_outpatient),
+        totalInpatientSales: parseFloat(row.total_inpatient),
+        totalSales: parseFloat(row.total_outpatient) + parseFloat(row.total_inpatient),
+      }))
+    },
+
+    // 医師別売上取得
+    salesByDoctor: async (_, { doctorCode, startMonth, endMonth }) => {
+      let query = `
+        SELECT *
+        FROM sales
+        WHERE doctor_code = $1
+      `
+      const params = [doctorCode]
+      let paramCount = 2
+
+      if (startMonth) {
+        query += ` AND year_month >= $${paramCount++}`
+        params.push(startMonth)
+      }
+      if (endMonth) {
+        query += ` AND year_month <= $${paramCount++}`
+        params.push(endMonth)
+      }
+
+      query += ' ORDER BY year_month'
+
+      const result = await pool.query(query, params)
+      return result.rows.map(row => ({
+        doctorCode: row.doctor_code,
+        yearMonth: row.year_month,
+        outpatientSales: parseFloat(row.outpatient_sales),
+        inpatientSales: parseFloat(row.inpatient_sales),
+        totalSales: parseFloat(row.outpatient_sales) + parseFloat(row.inpatient_sales),
+        updatedAt: row.updated_at.toISOString(),
+      }))
+    },
+
+    // 診療科別売上取得
+    salesByDepartment: async (_, { departmentCode, startMonth, endMonth }) => {
+      let query = `
+        SELECT 
+          s.year_month,
+          SUM(s.outpatient_sales) as total_outpatient,
+          SUM(s.inpatient_sales) as total_inpatient
+        FROM sales s
+        JOIN doctors d ON s.doctor_code = d.code
+        WHERE d.department_code = $1
+      `
+      const params = [departmentCode]
+      let paramCount = 2
+
+      if (startMonth) {
+        query += ` AND s.year_month >= $${paramCount++}`
+        params.push(startMonth)
+      }
+      if (endMonth) {
+        query += ` AND s.year_month <= $${paramCount++}`
+        params.push(endMonth)
+      }
+
+      query += ' GROUP BY s.year_month ORDER BY s.year_month'
+
+      const result = await pool.query(query, params)
+      return result.rows.map(row => ({
+        yearMonth: row.year_month,
+        totalOutpatientSales: parseFloat(row.total_outpatient),
+        totalInpatientSales: parseFloat(row.total_inpatient),
+        totalSales: parseFloat(row.total_outpatient) + parseFloat(row.total_inpatient),
+      }))
     },
   },
 }

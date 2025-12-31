@@ -75,3 +75,60 @@ export const GET_INPATIENT_BY_WARD = gql`
     }
   }
 `
+
+export const GET_DOCTORS = gql`
+  query GetDoctors {
+    doctors {
+      code
+      name
+      departmentCode
+      department {
+        code
+        name
+      }
+    }
+  }
+`
+
+export const GET_DOCTORS_BY_DEPARTMENT = gql`
+  query GetDoctorsByDepartment($departmentCode: String!) {
+    doctorsByDepartment(departmentCode: $departmentCode) {
+      code
+      name
+      departmentCode
+    }
+  }
+`
+
+export const GET_SALES_SUMMARY = gql`
+  query GetSalesSummary($startMonth: String, $endMonth: String) {
+    salesSummary(startMonth: $startMonth, endMonth: $endMonth) {
+      yearMonth
+      totalOutpatientSales
+      totalInpatientSales
+      totalSales
+    }
+  }
+`
+
+export const GET_SALES_BY_DOCTOR = gql`
+  query GetSalesByDoctor($doctorCode: String!, $startMonth: String, $endMonth: String) {
+    salesByDoctor(doctorCode: $doctorCode, startMonth: $startMonth, endMonth: $endMonth) {
+      yearMonth
+      outpatientSales
+      inpatientSales
+      totalSales
+    }
+  }
+`
+
+export const GET_SALES_BY_DEPARTMENT = gql`
+  query GetSalesByDepartment($departmentCode: String!, $startMonth: String, $endMonth: String) {
+    salesByDepartment(departmentCode: $departmentCode, startMonth: $startMonth, endMonth: $endMonth) {
+      yearMonth
+      totalOutpatientSales
+      totalInpatientSales
+      totalSales
+    }
+  }
+`

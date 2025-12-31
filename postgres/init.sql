@@ -45,12 +45,49 @@ CREATE TABLE IF NOT EXISTS inpatient_records (
     UNIQUE(date, ward_id, department_id)
 );
 
+-- 権限テーブル
+CREATE TABLE IF NOT EXISTS permissions (
+    job_type_code VARCHAR(2) PRIMARY KEY,
+    job_type_name VARCHAR(100) NOT NULL,
+    level INTEGER NOT NULL DEFAULT 10
+);
+
+-- 職員テーブル
+CREATE TABLE IF NOT EXISTS staff (
+    id VARCHAR(20) PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    job_type_code VARCHAR(2) NOT NULL REFERENCES permissions(job_type_code),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 医師テーブル
+CREATE TABLE IF NOT EXISTS doctors (
+    code VARCHAR(20) PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    department_code VARCHAR(10) NOT NULL REFERENCES departments(code),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 売上テーブル
+CREATE TABLE IF NOT EXISTS sales (
+    doctor_code VARCHAR(20) NOT NULL REFERENCES doctors(code),
+    year_month VARCHAR(7) NOT NULL,
+    outpatient_sales BIGINT NOT NULL DEFAULT 0,
+    inpatient_sales BIGINT NOT NULL DEFAULT 0,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (doctor_code, year_month)
+);
+
 -- インデックス作成
 CREATE INDEX idx_outpatient_date ON outpatient_records(date);
 CREATE INDEX idx_outpatient_department ON outpatient_records(department_id);
 CREATE INDEX idx_inpatient_date ON inpatient_records(date);
 CREATE INDEX idx_inpatient_ward ON inpatient_records(ward_id);
 CREATE INDEX idx_inpatient_department ON inpatient_records(department_id);
+CREATE INDEX idx_staff_job_type ON staff(job_type_code);
+CREATE INDEX idx_doctors_department ON doctors(department_code);
+CREATE INDEX idx_sales_year_month ON sales(year_month);
+CREATE INDEX idx_sales_doctor ON sales(doctor_code);
 
 -- テストデータ: 診療科マスタ
 INSERT INTO departments (code, name, display_order) VALUES
@@ -71,6 +108,64 @@ INSERT INTO wards (code, name, capacity, display_order) VALUES
     ('004', '4階病棟', 45, 2),
     ('005', '5階病棟', 60, 3)
 ON CONFLICT (code) DO NOTHING;
+
+-- テストデータ: 権限マスタ
+INSERT INTO permissions (job_type_code, job_type_name, level) VALUES
+    ('10', '医師', 10),
+    ('11', '歯科医師', 10),
+    ('80', 'その他', 10),
+    ('90', 'システム管理者', 99),
+    ('99', '事務部長', 90)
+ON CONFLICT (job_type_code) DO NOTHING;
+
+-- テストデータ: 職員マスタ
+INSERT INTO staff (id, name, job_type_code) VALUES
+    ('admin001', '管理者 太郎', '90'),
+    ('director001', '事務部長 花子', '99'),
+    ('doctor001', '山田 一郎', '10'),
+    ('doctor002', '佐藤 二郎', '10'),
+    ('dentist001', '鈴木 三郎', '11'),
+    ('staff001', '田中 四郎', '80')
+ON CONFLICT (id) DO NOTHING;
+
+-- テストデータ: 医師マスタ
+INSERT INTO doctors (code, name, department_code) VALUES
+    ('D001', '山田 一郎', '01'),
+    ('D002', '佐藤 次郎', '01'),
+    ('D003', '鈴木 三郎', '10'),
+    ('D004', '高橋 四郎', '11'),
+    ('D005', '田中 五郎', '11'),
+    ('D006', '伊藤 六郎', '12'),
+    ('D007', '渡辺 七郎', '13'),
+    ('D008', '山本 八郎', '24'),
+    ('D009', '中村 九郎', '31'),
+    ('D010', '小林 十郎', '75')
+ON CONFLICT (code) DO NOTHING;
+
+-- テストデータ: 売上データ（過去24ヶ月分）
+DO $$
+DECLARE
+    target_month DATE := CURRENT_DATE - INTERVAL '24 months';
+    year_month_str VARCHAR(7);
+    doc_code VARCHAR(20);
+BEGIN
+    WHILE target_month <= CURRENT_DATE LOOP
+        year_month_str := TO_CHAR(target_month, 'YYYY-MM');
+        
+        FOR doc_code IN SELECT code FROM doctors LOOP
+            INSERT INTO sales (doctor_code, year_month, outpatient_sales, inpatient_sales)
+            VALUES (
+                doc_code,
+                year_month_str,
+                FLOOR(RANDOM() * 5000000 + 1000000)::BIGINT,  -- 外来: 100万〜600万円
+                FLOOR(RANDOM() * 10000000 + 2000000)::BIGINT  -- 入院: 200万〜1200万円
+            )
+            ON CONFLICT (doctor_code, year_month) DO NOTHING;
+        END LOOP;
+        
+        target_month := target_month + INTERVAL '1 month';
+    END LOOP;
+END $$;
 
 -- テストデータ: 外来患者記録（過去30日分）
 DO $$

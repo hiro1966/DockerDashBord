@@ -1,11 +1,15 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import { ApolloClient, InMemoryCache, ApolloProvider } from '@apollo/client'
+import { ApolloClient, InMemoryCache, ApolloProvider, HttpLink } from '@apollo/client'
 import App from './App'
 import './index.css'
 
-const client = new ApolloClient({
+const httpLink = new HttpLink({
   uri: import.meta.env.VITE_GRAPHQL_URL || 'http://localhost:4000/graphql',
+})
+
+const client = new ApolloClient({
+  link: httpLink,
   cache: new InMemoryCache(),
 })
 

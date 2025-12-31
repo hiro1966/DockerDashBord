@@ -77,33 +77,33 @@ ON CONFLICT (code) DO NOTHING;
 -- テストデータ: 外来患者記録（過去30日分）
 DO $$
 DECLARE
-    current_date DATE := CURRENT_DATE - INTERVAL '30 days';
+    rec_date DATE := CURRENT_DATE - INTERVAL '30 days';
     dept_id INTEGER;
 BEGIN
-    WHILE current_date <= CURRENT_DATE LOOP
+    WHILE rec_date <= CURRENT_DATE LOOP
         FOR dept_id IN SELECT id FROM departments LOOP
             INSERT INTO outpatient_records (date, department_id, new_patients_count, returning_patients_count)
             VALUES (
-                current_date,
+                rec_date,
                 dept_id,
                 FLOOR(RANDOM() * 20 + 5)::INTEGER,  -- 初診: 5-25人
                 FLOOR(RANDOM() * 50 + 20)::INTEGER  -- 再診: 20-70人
             )
             ON CONFLICT (date, department_id) DO NOTHING;
         END LOOP;
-        current_date := current_date + INTERVAL '1 day';
+        rec_date := rec_date + INTERVAL '1 day';
     END LOOP;
 END $$;
 
 -- テストデータ: 入院患者記録（過去30日分）
 DO $$
 DECLARE
-    current_date DATE := CURRENT_DATE - INTERVAL '30 days';
+    rec_date DATE := CURRENT_DATE - INTERVAL '30 days';
     w_id INTEGER;
     dept_id INTEGER;
     current_count INTEGER;
 BEGIN
-    WHILE current_date <= CURRENT_DATE LOOP
+    WHILE rec_date <= CURRENT_DATE LOOP
         FOR w_id IN SELECT id FROM wards LOOP
             -- 各病棟に3-5診療科を割り当て
             FOR dept_id IN (SELECT id FROM departments ORDER BY RANDOM() LIMIT (FLOOR(RANDOM() * 3 + 3)::INTEGER)) LOOP
@@ -118,7 +118,7 @@ BEGIN
                     transfer_in_count
                 )
                 VALUES (
-                    current_date,
+                    rec_date,
                     w_id,
                     dept_id,
                     current_count,                              -- 在院: 10-25人
@@ -130,7 +130,7 @@ BEGIN
                 ON CONFLICT (date, ward_id, department_id) DO NOTHING;
             END LOOP;
         END LOOP;
-        current_date := current_date + INTERVAL '1 day';
+        rec_date := rec_date + INTERVAL '1 day';
     END LOOP;
 END $$;
 

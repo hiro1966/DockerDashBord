@@ -1,0 +1,19 @@
+{
+  "name": "hospital-graphql-server",
+  "version": "1.0.0",
+  "description": "Hospital Dashboard GraphQL Server",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js"
+  },
+  "keywords": ["graphql", "hospital", "dashboard"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "graphql": "^16.8.1",
+    "graphql-yoga": "^5.1.1",
+    "pg": "^8.11.3"
+  }
+}

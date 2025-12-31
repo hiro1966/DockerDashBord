@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS departments (
     id SERIAL PRIMARY KEY,
     code VARCHAR(10) UNIQUE NOT NULL,
     name VARCHAR(100) NOT NULL,
+    display_order INTEGER NOT NULL DEFAULT 999,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -14,6 +15,7 @@ CREATE TABLE IF NOT EXISTS wards (
     code VARCHAR(10) UNIQUE NOT NULL,
     name VARCHAR(100) NOT NULL,
     capacity INTEGER NOT NULL,
+    display_order INTEGER NOT NULL DEFAULT 999,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -51,27 +53,23 @@ CREATE INDEX idx_inpatient_ward ON inpatient_records(ward_id);
 CREATE INDEX idx_inpatient_department ON inpatient_records(department_id);
 
 -- テストデータ: 診療科マスタ
-INSERT INTO departments (code, name) VALUES
-    ('INT', '内科'),
-    ('SUR', '外科'),
-    ('PED', '小児科'),
-    ('ORT', '整形外科'),
-    ('OBS', '産婦人科'),
-    ('OPH', '眼科'),
-    ('ENT', '耳鼻咽喉科'),
-    ('DER', '皮膚科'),
-    ('PSY', '精神科'),
-    ('RAD', '放射線科')
+INSERT INTO departments (code, name, display_order) VALUES
+    ('01', '内科', 1),
+    ('10', '小児科', 2),
+    ('11', '外科', 3),
+    ('12', '整形外科', 4),
+    ('13', '形成外科', 5),
+    ('24', '耳鼻咽喉科', 6),
+    ('31', '泌尿器科', 7),
+    ('75', '皮膚科', 8),
+    ('39', '口腔外科', 9)
 ON CONFLICT (code) DO NOTHING;
 
 -- テストデータ: 病棟マスタ
-INSERT INTO wards (code, name, capacity) VALUES
-    ('W1', '第1病棟', 50),
-    ('W2', '第2病棟', 45),
-    ('W3', '第3病棟', 60),
-    ('W4', '第4病棟', 40),
-    ('ICU', 'ICU', 20),
-    ('CCU', 'CCU', 15)
+INSERT INTO wards (code, name, capacity, display_order) VALUES
+    ('003', '3階病棟', 50, 1),
+    ('004', '4階病棟', 45, 2),
+    ('005', '5階病棟', 60, 3)
 ON CONFLICT (code) DO NOTHING;
 
 -- テストデータ: 外来患者記録（過去30日分）

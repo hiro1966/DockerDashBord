@@ -19,6 +19,7 @@ const typeDefs = `
     id: Int!
     code: String!
     name: String!
+    displayOrder: Int!
     createdAt: String!
   }
 
@@ -27,6 +28,7 @@ const typeDefs = `
     code: String!
     name: String!
     capacity: Int!
+    displayOrder: Int!
     createdAt: String!
   }
 
@@ -107,23 +109,25 @@ const resolvers = {
   Query: {
     // 診療科一覧取得
     departments: async () => {
-      const result = await pool.query('SELECT * FROM departments ORDER BY code')
+      const result = await pool.query('SELECT * FROM departments ORDER BY display_order, code')
       return result.rows.map(row => ({
         id: row.id,
         code: row.code,
         name: row.name,
+        displayOrder: row.display_order,
         createdAt: row.created_at.toISOString(),
       }))
     },
 
     // 病棟一覧取得
     wards: async () => {
-      const result = await pool.query('SELECT * FROM wards ORDER BY code')
+      const result = await pool.query('SELECT * FROM wards ORDER BY display_order, code')
       return result.rows.map(row => ({
         id: row.id,
         code: row.code,
         name: row.name,
         capacity: row.capacity,
+        displayOrder: row.display_order,
         createdAt: row.created_at.toISOString(),
       }))
     },
@@ -152,7 +156,7 @@ const resolvers = {
         params.push(departmentId)
       }
 
-      query += ' ORDER BY o.date DESC, d.code'
+      query += ' ORDER BY o.date DESC, d.display_order, d.code'
 
       const result = await pool.query(query, params)
       return result.rows.map(row => ({
@@ -228,7 +232,7 @@ const resolvers = {
         params.push(endDate)
       }
 
-      query += ' GROUP BY d.id, d.code, d.name, d.created_at ORDER BY d.code'
+      query += ' GROUP BY d.id, d.code, d.name, d.display_order, d.created_at ORDER BY d.display_order, d.code'
 
       const result = await pool.query(query, params)
       
@@ -320,7 +324,7 @@ const resolvers = {
         params.push(departmentId)
       }
 
-      query += ' ORDER BY i.date DESC, w.code, d.code'
+      query += ' ORDER BY i.date DESC, w.display_order, w.code, d.display_order, d.code'
 
       const result = await pool.query(query, params)
       return result.rows.map(row => ({
@@ -410,7 +414,7 @@ const resolvers = {
         params.push(endDate)
       }
 
-      query += ' GROUP BY w.id, w.code, w.name, w.capacity, w.created_at ORDER BY w.code'
+      query += ' GROUP BY w.id, w.code, w.name, w.capacity, w.display_order, w.created_at ORDER BY w.display_order, w.code'
 
       const result = await pool.query(query, params)
 
@@ -439,7 +443,7 @@ const resolvers = {
             recordParams.push(endDate)
           }
 
-          recordQuery += ' ORDER BY i.date DESC, d.code'
+          recordQuery += ' ORDER BY i.date DESC, d.display_order, d.code'
 
           const recordResult = await pool.query(recordQuery, recordParams)
 

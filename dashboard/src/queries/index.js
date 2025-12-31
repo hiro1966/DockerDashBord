@@ -132,3 +132,22 @@ export const GET_SALES_BY_DEPARTMENT = gql`
     }
   }
 `
+
+export const GET_SALES_BY_DOCTORS_IN_DEPARTMENT = gql`
+  query GetSalesByDoctorsInDepartment($departmentCode: String!, $startMonth: String, $endMonth: String) {
+    salesByDoctorsInDepartment(departmentCode: $departmentCode, startMonth: $startMonth, endMonth: $endMonth) {
+      doctor {
+        code
+        name
+        displayOrder
+      }
+      sales {
+        yearMonth
+        outpatientSales
+        inpatientSales
+        totalSales
+      }
+    }
+  }
+`
+

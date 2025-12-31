@@ -105,6 +105,7 @@ const typeDefs = `
     code: String!
     name: String!
     departmentCode: String!
+    displayOrder: Int!
     department: Department!
     createdAt: String!
   }
@@ -123,6 +124,11 @@ const typeDefs = `
     totalOutpatientSales: Float!
     totalInpatientSales: Float!
     totalSales: Float!
+  }
+
+  type DoctorSales {
+    doctor: Doctor!
+    sales: [Sales!]!
   }
 
   type Query {
@@ -149,6 +155,7 @@ const typeDefs = `
     salesSummary(startMonth: String, endMonth: String): [SalesSummary!]!
     salesByDoctor(doctorCode: String!, startMonth: String, endMonth: String): [Sales!]!
     salesByDepartment(departmentCode: String!, startMonth: String, endMonth: String): [SalesSummary!]!
+    salesByDoctorsInDepartment(departmentCode: String!, startMonth: String, endMonth: String): [DoctorSales!]!
   }
 `
 
@@ -711,6 +718,62 @@ const resolvers = {
         totalInpatientSales: parseFloat(row.total_inpatient),
         totalSales: parseFloat(row.total_outpatient) + parseFloat(row.total_inpatient),
       }))
+    },
+
+    // 診療科内の医師別売上取得（積み上げグラフ用）
+    salesByDoctorsInDepartment: async (_, { departmentCode, startMonth, endMonth }) => {
+      // まず該当診療科の医師を表示順で取得
+      const doctorsQuery = `
+        SELECT code, name, department_code, display_order, created_at
+        FROM doctors
+        WHERE department_code = $1
+        ORDER BY display_order, name
+      `
+      const doctorsResult = await pool.query(doctorsQuery, [departmentCode])
+      
+      // 各医師の売上データを取得
+      const doctorSalesPromises = doctorsResult.rows.map(async (doctor) => {
+        let salesQuery = `
+          SELECT doctor_code, year_month, outpatient_sales, inpatient_sales, updated_at
+          FROM sales
+          WHERE doctor_code = $1
+        `
+        const params = [doctor.code]
+        let paramCount = 2
+
+        if (startMonth) {
+          salesQuery += ` AND year_month >= $${paramCount++}`
+          params.push(startMonth)
+        }
+        if (endMonth) {
+          salesQuery += ` AND year_month <= $${paramCount++}`
+          params.push(endMonth)
+        }
+
+        salesQuery += ' ORDER BY year_month'
+
+        const salesResult = await pool.query(salesQuery, params)
+        
+        return {
+          doctor: {
+            code: doctor.code,
+            name: doctor.name,
+            departmentCode: doctor.department_code,
+            displayOrder: doctor.display_order,
+            createdAt: new Date(doctor.created_at).toISOString(),
+          },
+          sales: salesResult.rows.map(sale => ({
+            doctorCode: sale.doctor_code,
+            yearMonth: sale.year_month,
+            outpatientSales: parseFloat(sale.outpatient_sales),
+            inpatientSales: parseFloat(sale.inpatient_sales),
+            totalSales: parseFloat(sale.outpatient_sales) + parseFloat(sale.inpatient_sales),
+            updatedAt: new Date(sale.updated_at).toISOString(),
+          }))
+        }
+      })
+
+      return await Promise.all(doctorSalesPromises)
     },
   },
 }

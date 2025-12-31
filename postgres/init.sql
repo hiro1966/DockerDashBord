@@ -65,6 +65,7 @@ CREATE TABLE IF NOT EXISTS doctors (
     code VARCHAR(20) PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
     department_code VARCHAR(10) NOT NULL REFERENCES departments(code),
+    display_order INTEGER NOT NULL DEFAULT 999,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -129,17 +130,17 @@ INSERT INTO staff (id, name, job_type_code) VALUES
 ON CONFLICT (id) DO NOTHING;
 
 -- テストデータ: 医師マスタ
-INSERT INTO doctors (code, name, department_code) VALUES
-    ('D001', '山田 一郎', '01'),
-    ('D002', '佐藤 次郎', '01'),
-    ('D003', '鈴木 三郎', '10'),
-    ('D004', '高橋 四郎', '11'),
-    ('D005', '田中 五郎', '11'),
-    ('D006', '伊藤 六郎', '12'),
-    ('D007', '渡辺 七郎', '13'),
-    ('D008', '山本 八郎', '24'),
-    ('D009', '中村 九郎', '31'),
-    ('D010', '小林 十郎', '75')
+INSERT INTO doctors (code, name, department_code, display_order) VALUES
+    ('D001', '山田 一郎', '01', 1),
+    ('D002', '佐藤 次郎', '01', 2),
+    ('D003', '鈴木 三郎', '10', 1),
+    ('D004', '高橋 四郎', '11', 1),
+    ('D005', '田中 五郎', '11', 2),
+    ('D006', '伊藤 六郎', '12', 1),
+    ('D007', '渡辺 七郎', '13', 1),
+    ('D008', '山本 八郎', '24', 1),
+    ('D009', '中村 九郎', '31', 1),
+    ('D010', '小林 十郎', '75', 1)
 ON CONFLICT (code) DO NOTHING;
 
 -- テストデータ: 売上データ（過去24ヶ月分）

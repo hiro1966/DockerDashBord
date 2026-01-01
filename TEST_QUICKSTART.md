@@ -24,14 +24,21 @@ npm run test:all
 ./run-all-tests.sh
 ```
 
-#### Windows (コマンドプロンプト)
+**⚠️ WSL環境の注意点**: 
+- WSLターミナル内では必ず`.sh`スクリプトを使用してください
+- `.bat`ファイルを実行するとUNCパスエラーが発生します
+- 詳細: [WSL_CORRECT_USAGE.md](./WSL_CORRECT_USAGE.md)
+
+#### Windows (ネイティブ - WSLを使用しない場合)
 ```cmd
 run-all-tests.bat
 ```
 
-#### Windows (PowerShell)
+※ネイティブWindowsにNode.jsをインストールしている場合のみ
+
+#### Windows (WSL環境でWindows側から実行)
 ```powershell
-.\run-all-tests.bat
+.\run-tests-wsl.ps1
 ```
 
 ---

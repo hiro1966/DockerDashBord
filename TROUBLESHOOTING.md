@@ -170,6 +170,39 @@ docker compose up -d
 
 ## WSL環境でのエラー
 
+### エラー: `run-all-tests.bat` を実行するとUNCパスエラー
+
+```bash
+# WSL内で .bat を実行した場合
+./run-all-tests.bat
+# または
+run-all-tests.bat
+
+# エラー:
+# UNC パスはサポートされません
+# npm error path C:\Windows\package.json
+```
+
+#### 原因
+WSL環境で`.bat`（Windowsバッチファイル）を実行すると、Windows側のCMD.EXEが起動され、
+UNCパス（`\\wsl.localhost\...`）経由でアクセスしようとするため。
+
+#### 解決策
+
+**WSL内では `.sh` スクリプトを使用してください：**
+
+```bash
+# 正しい方法
+./run-all-tests.sh
+
+# または
+npm run test:all
+```
+
+詳細: [WSL_CORRECT_USAGE.md](./WSL_CORRECT_USAGE.md)
+
+---
+
 ### エラー: `UNC パスはサポートされません` / `NODE_OPTIONS は認識されていません`
 
 ```

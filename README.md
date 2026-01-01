@@ -123,7 +123,7 @@ npm run test:all
 
 #### WSL環境（Windows + WSL）⚠️
 
-**重要**: WSL環境では、必ずWSLターミナル内で実行してください。
+**重要**: WSL環境では、必ずWSLターミナル内で**`.sh`スクリプト**を実行してください。
 
 ```bash
 # 1. WSLターミナルを開く
@@ -132,13 +132,16 @@ wsl
 # 2. プロジェクトディレクトリへ移動
 cd ~/DockerDashBord  # またはプロジェクトのパス
 
-# 3. テストを実行
+# 3. テストを実行（.sh スクリプトを使用）
 ./run-all-tests.sh
 # または
 npm run test:all
 ```
 
-**Windows側から実行する場合**:
+**⚠️ 注意**: WSL内で`run-all-tests.bat`を実行すると、UNCパスエラーが発生します！  
+詳細: [WSL_CORRECT_USAGE.md](./WSL_CORRECT_USAGE.md)
+
+**Windows側（PowerShell/コマンドプロンプト）から実行する場合**:
 
 ```powershell
 # PowerShellで実行（自動的にWSL内で実行されます）
@@ -147,11 +150,13 @@ npm run test:all
 
 詳細: [WSL_EXECUTION_GUIDE.md](./WSL_EXECUTION_GUIDE.md)
 
-#### Windows（ネイティブ）
+#### Windows（ネイティブ - WSLを使用しない場合）
 
 ```cmd
 run-all-tests.bat
 ```
+
+※ネイティブWindowsにNode.jsをインストールしている場合のみ
 
 ### 📝 個別のテストを実行
 

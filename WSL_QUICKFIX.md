@@ -2,6 +2,8 @@
 
 ## ❌ 発生したエラー
 
+### パターン1: Windows側からWSLのファイルを実行
+
 ```
 '\\wsl.localhost\Ubuntu-20.04\home\user1\DockerDashBord\graphql-server'
 上記の現在のディレクトリで CMD.EXE を開始しました。
@@ -10,11 +12,32 @@ UNC パスはサポートされません。Windows ディレクトリを既定�
 操作可能なプログラムまたはバッチ ファイルとして認識されていません。
 ```
 
+### パターン2: WSL内で `.bat` ファイルを実行
+
+```bash
+# WSL内で実行
+./run-all-tests.bat
+
+# エラー:
+# UNC パスはサポートされません
+# npm error path C:\Windows\package.json
+```
+
 ## ✅ 原因
 
+WSL環境でのUNCパスエラーには2つのパターンがあります：
+
+### パターン1: Windows側からWSLのファイルにアクセス
 Windows側（エクスプローラー、コマンドプロンプト、PowerShell）から
 WSLのファイルにアクセスする際の**UNCパス**（`\\wsl.localhost\...`）では、
 Node.js環境変数やnpmスクリプトが正常に動作しません。
+
+### パターン2: WSL内で `.bat` ファイルを実行
+WSL環境で`.bat`（Windowsバッチファイル）を実行すると、
+WSLが自動的にWindows側のCMD.EXEで実行しようとするため、
+パス変換の問題でUNCパスエラーが発生します。
+
+**重要**: WSL内では必ず`.sh`スクリプトを使用してください！
 
 ## 🎯 解決策（3つの方法）
 
@@ -38,9 +61,14 @@ pwd
 # 正常: /home/user1/DockerDashBord
 # 異常: /mnt/c/... または \\wsl.localhost\...
 
-# 4. テストを実行
+# 4. テストを実行（必ず .sh スクリプトを使用）
 ./run-all-tests.sh
 ```
+
+**⚠️ 重要**: WSL内では`run-all-tests.bat`を実行しないでください！
+- `.bat`はWindowsバッチファイルです
+- WSLで実行するとUNCパスエラーが発生します
+- 必ず`.sh`スクリプトを使用してください
 
 #### WSLターミナルの開き方
 

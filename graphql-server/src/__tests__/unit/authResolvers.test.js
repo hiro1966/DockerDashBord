@@ -1,12 +1,17 @@
-import { describe, test, expect, jest, beforeEach } from '@jest/globals'
-import * as authResolvers from '../../resolvers/authResolvers.js'
-import * as db from '../../db/pool.js'
+import { describe, test, expect, beforeEach, jest } from '@jest/globals'
 
-jest.mock('../../db/pool.js')
+// Mock db before importing resolvers
+const mockQuery = jest.fn()
+jest.unstable_mockModule('../../db/pool.js', () => ({
+  query: mockQuery,
+}))
+
+// Import after mocking
+const { verifyStaff } = await import('../../resolvers/authResolvers.js')
 
 describe('Auth Resolvers - Unit Tests', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    mockQuery.mockClear()
   })
 
   describe('verifyStaff', () => {
@@ -21,10 +26,10 @@ describe('Auth Resolvers - Unit Tests', () => {
         created_at: new Date('2024-01-01'),
       }
       
-      db.query.mockResolvedValue({ rows: [mockRow] })
+      mockQuery.mockResolvedValue({ rows: [mockRow] })
 
       // Act
-      const result = await authResolvers.verifyStaff('admin001')
+      const result = await verifyStaff('admin001')
 
       // Assert
       expect(result).toEqual({
@@ -38,7 +43,7 @@ describe('Auth Resolvers - Unit Tests', () => {
         },
         createdAt: expect.any(String),
       })
-      expect(db.query).toHaveBeenCalledWith(
+      expect(mockQuery).toHaveBeenCalledWith(
         expect.stringContaining('FROM staff s'),
         ['admin001']
       )
@@ -46,30 +51,34 @@ describe('Auth Resolvers - Unit Tests', () => {
 
     test('存在しない職員IDでnullを返す', async () => {
       // Arrange
-      db.query.mockResolvedValue({ rows: [] })
+      mockQuery.mockResolvedValue({ rows: [] })
 
       // Act
-      const result = await authResolvers.verifyStaff('invalid_id')
+      const result = await verifyStaff('invalid_id')
 
       // Assert
       expect(result).toBeNull()
+      expect(mockQuery).toHaveBeenCalledWith(
+        expect.stringContaining('FROM staff s'),
+        ['invalid_id']
+      )
     })
 
     test('権限情報が正しく含まれている', async () => {
       // Arrange
       const mockRow = {
         id: 'doctor001',
-        name: '山田 一郎',
+        name: '医師 一郎',
         job_type_code: '10',
         job_type_name: '医師',
         level: 10,
         created_at: new Date('2024-01-01'),
       }
       
-      db.query.mockResolvedValue({ rows: [mockRow] })
+      mockQuery.mockResolvedValue({ rows: [mockRow] })
 
       // Act
-      const result = await authResolvers.verifyStaff('doctor001')
+      const result = await verifyStaff('doctor001')
 
       // Assert
       expect(result.permission).toEqual({
@@ -82,16 +91,15 @@ describe('Auth Resolvers - Unit Tests', () => {
     test('SQLインジェクション攻撃を防ぐ', async () => {
       // Arrange
       const maliciousId = "admin' OR '1'='1"
-      db.query.mockResolvedValue({ rows: [] })
+      mockQuery.mockResolvedValue({ rows: [] })
 
       // Act
-      await authResolvers.verifyStaff(maliciousId)
+      await verifyStaff(maliciousId)
 
-      // Assert
-      // パラメータ化されたクエリを使用していることを確認
-      expect(db.query).toHaveBeenCalledWith(
+      // Assert - パラメータ化されたクエリを使用していることを確認
+      expect(mockQuery).toHaveBeenCalledWith(
         expect.any(String),
-        [maliciousId]
+        [maliciousId] // パラメータとして渡されている
       )
     })
   })

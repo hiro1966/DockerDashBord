@@ -1,5 +1,5 @@
 import { describe, test, expect, beforeAll, afterAll } from '@jest/globals'
-import { yoga } from '../../../index_new.js'
+import { yoga } from '../../../index.js'
 
 describe('GraphQL API - Integration Tests', () => {
   describe('Master Data Queries', () => {

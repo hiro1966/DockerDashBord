@@ -98,6 +98,40 @@ netsh interface portproxy add v4tov4 listenport=4000 listenaddress=0.0.0.0 conne
 
 詳細は [WSL_NETWORK_ACCESS.md](./WSL_NETWORK_ACCESS.md) を参照してください。
 
+## 🧪 テスト
+
+このプロジェクトはテスト駆動開発（TDD）に基づいており、包括的なテストスイートを提供しています。
+
+### テストの種類
+
+- **A. サーバーのユニットテスト**: 個別の関数・モジュールのテスト
+- **B. サーバーの統合テスト**: GraphQL API全体のテスト
+- **C. クライアントのコンポーネントテスト**: Reactコンポーネントのテスト
+- **D. E2Eテスト**: ブラウザでの実際の操作テスト
+
+### クイックスタート
+
+```bash
+# サーバーのユニットテスト
+cd graphql-server
+npm install
+npm test
+
+# クライアントのコンポーネントテスト
+cd dashboard
+npm install
+npm test
+
+# E2Eテスト
+docker compose up -d
+cd e2e-tests
+npm install
+npx playwright install
+npm test
+```
+
+詳細は [TESTING.md](./TESTING.md) を参照してください。
+
 4. **ログの確認**
 ```bash
 # 全サービスのログを確認

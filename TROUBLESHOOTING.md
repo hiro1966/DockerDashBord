@@ -170,6 +170,66 @@ docker compose up -d
 
 ## WSL環境でのエラー
 
+### エラー: `UNC パスはサポートされません` / `NODE_OPTIONS は認識されていません`
+
+```
+'\\wsl.localhost\Ubuntu-20.04\home\user1\DockerDashBord\graphql-server'
+上記の現在のディレクトリで CMD.EXE を開始しました。
+UNC パスはサポートされません。Windows ディレクトリを既定で使用します。
+'NODE_OPTIONS' は、内部コマンドまたは外部コマンド、
+操作可能なプログラムまたはバッチ ファイルとして認識されていません。
+```
+
+#### 原因
+Windows側（コマンドプロンプトやPowerShell）からWSLのUNCパス（`\\wsl.localhost\...`）経由で
+スクリプトを実行しようとしているため。npmスクリプトやNode.js環境変数がWindows側で正しく動作しません。
+
+#### 解決策
+
+**方法1: WSLターミナル内で実行（推奨）**
+
+```bash
+# 1. WSLターミナルを開く
+wsl
+
+# 2. プロジェクトディレクトリへ移動
+cd ~/DockerDashBord  # またはプロジェクトのパス
+
+# 3. 現在のパスを確認（UNCパスでないことを確認）
+pwd
+# 出力例: /home/user1/DockerDashBord （OK）
+# NG例: /mnt/c/... や \\wsl.localhost\...
+
+# 4. テストを実行
+./run-all-tests.sh
+# または
+npm run test:all
+```
+
+**方法2: Windows用ラッパースクリプトを使用**
+
+```powershell
+# PowerShellで実行（自動的にWSL内でコマンドを実行）
+.\run-tests-wsl.ps1
+```
+
+このスクリプトは自動的に：
+- WSLの利用可能性を確認
+- プロジェクトパスを検出
+- WSL内でテストを実行
+
+**方法3: wslコマンドで直接実行**
+
+```powershell
+# PowerShellで
+wsl bash -c "cd ~/DockerDashBord && ./run-all-tests.sh"
+
+# または
+wsl bash -c "cd ~/DockerDashBord && npm run test:all"
+```
+
+詳細: [WSL_EXECUTION_GUIDE.md](./WSL_EXECUTION_GUIDE.md)
+
 ### エラー: `\\wsl.localhost\... path not found`
 
 #### 原因
@@ -177,23 +237,7 @@ Windows側からWSLのパスにアクセスしようとしている。
 
 #### 解決策
 
-**WSL内で実行（推奨）:**
-```bash
-# WSLターミナルを開く
-wsl
-
-# プロジェクトディレクトリへ移動
-cd ~/webapp  # または /home/user/webapp
-
-# テストを実行
-npm run test:all
-```
-
-**Windows側から実行する場合:**
-```bash
-# PowerShellで
-wsl -d Ubuntu-20.04 -e bash -c "cd ~/webapp && npm run test:all"
-```
+上記の「UNC パスはサポートされません」と同じ解決策を参照してください。
 
 ### エラー: Docker network issues in WSL
 

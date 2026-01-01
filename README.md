@@ -111,18 +111,45 @@ netsh interface portproxy add v4tov4 listenport=4000 listenaddress=0.0.0.0 conne
 
 ### 🚀 すべてのテストを実行（最も簡単な方法）
 
+#### 通常の環境（Linux/Mac）
+
 ```bash
 # プロジェクトルートで実行
 npm run test:all
+
+# またはシェルスクリプト
+./run-all-tests.sh
 ```
 
-または、シェルスクリプトを使用：
+#### WSL環境（Windows + WSL）⚠️
+
+**重要**: WSL環境では、必ずWSLターミナル内で実行してください。
 
 ```bash
-# Linux/Mac/WSL
-./run-all-tests.sh
+# 1. WSLターミナルを開く
+wsl
 
-# Windows
+# 2. プロジェクトディレクトリへ移動
+cd ~/DockerDashBord  # またはプロジェクトのパス
+
+# 3. テストを実行
+./run-all-tests.sh
+# または
+npm run test:all
+```
+
+**Windows側から実行する場合**:
+
+```powershell
+# PowerShellで実行（自動的にWSL内で実行されます）
+.\run-tests-wsl.ps1
+```
+
+詳細: [WSL_EXECUTION_GUIDE.md](./WSL_EXECUTION_GUIDE.md)
+
+#### Windows（ネイティブ）
+
+```cmd
 run-all-tests.bat
 ```
 

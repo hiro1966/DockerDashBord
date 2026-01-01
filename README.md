@@ -104,33 +104,81 @@ netsh interface portproxy add v4tov4 listenport=4000 listenaddress=0.0.0.0 conne
 
 ### テストの種類
 
-- **A. サーバーのユニットテスト**: 個別の関数・モジュールのテスト
-- **B. サーバーの統合テスト**: GraphQL API全体のテスト
-- **C. クライアントのコンポーネントテスト**: Reactコンポーネントのテスト
-- **D. E2Eテスト**: ブラウザでの実際の操作テスト
+- **A. サーバーのユニットテスト**: 個別の関数・モジュールのテスト（Jest）
+- **B. サーバーの統合テスト**: GraphQL API全体のテスト（Jest）
+- **C. クライアントのコンポーネントテスト**: Reactコンポーネントのテスト（Vitest + React Testing Library）
+- **D. E2Eテスト**: ブラウザでの実際の操作テスト（Playwright）
 
-### クイックスタート
+### 🚀 すべてのテストを実行（最も簡単な方法）
 
 ```bash
-# サーバーのユニットテスト
-cd graphql-server
-npm install
-npm test
-
-# クライアントのコンポーネントテスト
-cd dashboard
-npm install
-npm test
-
-# E2Eテスト
-docker compose up -d
-cd e2e-tests
-npm install
-npx playwright install
-npm test
+# プロジェクトルートで実行
+npm run test:all
 ```
 
-詳細は [TESTING.md](./TESTING.md) を参照してください。
+または、シェルスクリプトを使用：
+
+```bash
+# Linux/Mac/WSL
+./run-all-tests.sh
+
+# Windows
+run-all-tests.bat
+```
+
+### 📝 個別のテストを実行
+
+```bash
+# A. サーバーのユニットテスト
+npm run test:server:unit
+# または
+cd graphql-server && npm run test:unit
+
+# B. サーバーの統合テスト
+npm run test:server:integration
+# または
+cd graphql-server && npm run test:integration
+
+# C. クライアントのコンポーネントテスト
+npm run test:client
+# または
+cd dashboard && npm test
+
+# D. E2Eテスト（事前にDockerを起動: docker compose up -d）
+npm run test:e2e
+# または
+cd e2e-tests && npm test
+```
+
+### 📊 テストカバレッジ
+
+```bash
+# すべてのカバレッジレポートを生成
+npm run test:coverage
+
+# サーバーのみ
+npm run test:server:coverage
+
+# クライアントのみ
+npm run test:client:coverage
+```
+
+### 📖 詳細ドキュメント
+
+- **[TEST_QUICKSTART.md](./TEST_QUICKSTART.md)** - テスト実行のクイックリファレンス（おすすめ！）
+- **[TESTING.md](./TESTING.md)** - テスト戦略とTDDワークフローの詳細
+
+### ⚙️ 初回セットアップ（テスト環境）
+
+```bash
+# すべての依存関係をインストール
+npm run install:all
+
+# または個別にインストール
+cd graphql-server && npm install
+cd dashboard && npm install
+cd e2e-tests && npm install && npx playwright install
+```
 
 4. **ログの確認**
 ```bash

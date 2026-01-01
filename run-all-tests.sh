@@ -1,0 +1,89 @@
+#!/bin/bash
+
+# Hospital Dashboard - All Tests Runner
+# このスクリプトはすべてのテストを順次実行します
+
+set -e  # エラーが発生したら即座に終了
+
+echo "=========================================="
+echo "🧪 Hospital Dashboard - All Tests Runner"
+echo "=========================================="
+echo ""
+
+# 色の定義
+GREEN='\033[0;32m'
+RED='\033[0;31m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+# 現在のディレクトリを保存
+ROOT_DIR=$(pwd)
+
+# テスト結果を追跡
+TESTS_PASSED=0
+TESTS_FAILED=0
+
+# 関数: テストを実行
+run_test() {
+    local test_name=$1
+    local test_command=$2
+    local test_dir=$3
+    
+    echo ""
+    echo "=========================================="
+    echo "🧪 Running: $test_name"
+    echo "=========================================="
+    
+    cd "$ROOT_DIR/$test_dir"
+    
+    if eval "$test_command"; then
+        echo -e "${GREEN}✅ $test_name PASSED${NC}"
+        ((TESTS_PASSED++))
+    else
+        echo -e "${RED}❌ $test_name FAILED${NC}"
+        ((TESTS_FAILED++))
+    fi
+    
+    cd "$ROOT_DIR"
+}
+
+# A. サーバーのユニットテスト
+run_test "Server Unit Tests" "npm run test:unit" "graphql-server"
+
+# B. サーバーの統合テスト
+run_test "Server Integration Tests" "npm run test:integration" "graphql-server"
+
+# C. クライアントのコンポーネントテスト
+run_test "Client Component Tests" "npm test" "dashboard"
+
+# D. E2Eテスト（Dockerが起動している必要があります）
+echo ""
+echo "=========================================="
+echo "🔍 Checking Docker services..."
+echo "=========================================="
+
+if docker compose ps | grep -q "Up"; then
+    echo -e "${GREEN}✅ Docker services are running${NC}"
+    run_test "E2E Tests" "npm test" "e2e-tests"
+else
+    echo -e "${YELLOW}⚠️  Docker services are not running${NC}"
+    echo "Skipping E2E tests. Start Docker with: docker compose up -d"
+    echo ""
+fi
+
+# 結果サマリー
+echo ""
+echo "=========================================="
+echo "📊 Test Results Summary"
+echo "=========================================="
+echo -e "${GREEN}✅ Passed: $TESTS_PASSED${NC}"
+echo -e "${RED}❌ Failed: $TESTS_FAILED${NC}"
+echo ""
+
+if [ $TESTS_FAILED -eq 0 ]; then
+    echo -e "${GREEN}🎉 All tests passed!${NC}"
+    exit 0
+else
+    echo -e "${RED}💥 Some tests failed!${NC}"
+    exit 1
+fi

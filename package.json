@@ -1,0 +1,35 @@
+{
+  "name": "hospital-dashboard-root",
+  "version": "1.0.0",
+  "description": "Hospital Dashboard - Root workspace for running all tests",
+  "private": true,
+  "scripts": {
+    "test:all": "npm run test:server && npm run test:client && npm run test:e2e",
+    "test:server": "cd graphql-server && npm test",
+    "test:server:unit": "cd graphql-server && npm run test:unit",
+    "test:server:integration": "cd graphql-server && npm run test:integration",
+    "test:client": "cd dashboard && npm test",
+    "test:e2e": "cd e2e-tests && npm test",
+    "test:e2e:headed": "cd e2e-tests && npm run test:headed",
+    "test:coverage": "npm run test:server:coverage && npm run test:client:coverage",
+    "test:server:coverage": "cd graphql-server && npm run test:coverage",
+    "test:client:coverage": "cd dashboard && npm run test:coverage",
+    "install:all": "npm run install:server && npm run install:client && npm run install:e2e",
+    "install:server": "cd graphql-server && npm install",
+    "install:client": "cd dashboard && npm install",
+    "install:e2e": "cd e2e-tests && npm install && npx playwright install",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down",
+    "docker:build": "docker compose up -d --build",
+    "docker:logs": "docker compose logs -f"
+  },
+  "keywords": [
+    "hospital",
+    "dashboard",
+    "graphql",
+    "react",
+    "testing"
+  ],
+  "author": "",
+  "license": "MIT"
+}

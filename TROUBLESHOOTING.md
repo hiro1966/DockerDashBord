@@ -1,276 +1,406 @@
-# Docker Compose トラブルシューティングガイド
+# ❌ トラブルシューティング: よくあるエラーと解決方法
 
-## エラーが発生した場合の確認手順
+## 目次
+1. [npm run test:all のエラー](#npm-run-testall-のエラー)
+2. [E2Eテストのエラー](#e2eテストのエラー)
+3. [Docker関連のエラー](#docker関連のエラー)
+4. [WSL環境でのエラー](#wsl環境でのエラー)
 
-### 1. 詳細なエラーログの確認
+---
 
+## npm run test:all のエラー
+
+### エラー: `ENOENT: no such file or directory, open 'package.json'`
+
+```
+npm error code ENOENT
+npm error syscall open
+npm error path \\wsl.localhost\Ubuntu-20.04\home\user1\DockerDashBord\package.json
+npm error errno -4058
+npm error enoent Could not read package.json
+```
+
+#### 原因
+ルートディレクトリに`package.json`が存在しないため。
+
+#### 解決策
+
+**方法1: 最新版を取得（推奨）**
 ```bash
-cd /home/user/webapp
-docker compose up
+git pull origin main
 ```
-（`-d`オプションを外して、詳細なログを確認）
 
-### 2. 各コンテナの状態確認
-
+**方法2: package.jsonを手動作成**
 ```bash
-docker compose ps
-docker compose logs postgres
-docker compose logs graphql-server
-docker compose logs dashboard
+# プロジェクトルートで実行
+cat > package.json << 'EOF'
+{
+  "name": "hospital-dashboard-root",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "test:all": "npm run test:server && npm run test:client && npm run test:e2e",
+    "test:server": "cd graphql-server && npm test",
+    "test:client": "cd dashboard && npm test",
+    "test:e2e": "cd e2e-tests && npm test"
+  }
+}
+EOF
 ```
 
-### 3. よくあるエラーと対処法
-
-#### エラー1: ポートが既に使用されている
-```
-Error: bind: address already in use
-```
-
-**対処法**: 既に使用されているポートを変更
-
-`docker-compose.yml`を編集：
-```yaml
-services:
-  postgres:
-    ports:
-      - "5433:5432"  # 5432→5433に変更
-  
-  graphql-server:
-    ports:
-      - "4001:4000"  # 4000→4001に変更
-  
-  dashboard:
-    ports:
-      - "3001:3000"  # 3000→3001に変更
-```
-
-使用中のポートを確認：
+**方法3: 代替のテスト実行方法**
 ```bash
-# Linuxの場合
-sudo lsof -i :5432
-sudo lsof -i :4000
-sudo lsof -i :3000
-
-# Windowsの場合
-netstat -ano | findstr :5432
-netstat -ano | findstr :4000
-netstat -ano | findstr :3000
-
-# macOSの場合
-lsof -i :5432
-lsof -i :4000
-lsof -i :3000
-```
-
-#### エラー2: Docker Daemonが起動していない
-```
-Cannot connect to the Docker daemon
-```
-
-**対処法**:
-```bash
-# Linuxの場合
-sudo systemctl start docker
-
-# Windowsの場合
-Docker Desktopアプリケーションを起動
-
-# macOSの場合
-Docker Desktopアプリケーションを起動
-```
-
-#### エラー3: ボリュームのパーミッションエラー
-```
-Permission denied
-```
-
-**対処法**:
-```bash
-# 既存のボリュームを削除して再作成
-docker compose down -v
-docker compose up -d
-```
-
-#### エラー4: イメージのビルドエラー
-```
-failed to solve with frontend dockerfile
-```
-
-**対処法**:
-```bash
-# キャッシュをクリアして再ビルド
-docker compose build --no-cache
-docker compose up -d
-```
-
-#### エラー5: PostgreSQLの初期化エラー
-```
-database system was interrupted
-```
-
-**対処法**:
-```bash
-# PostgreSQLのデータボリュームを削除して再作成
-docker compose down
-docker volume rm webapp_postgres_data
-docker compose up -d
-```
-
-#### エラー6: GraphQLサーバーがPostgreSQLに接続できない
-```
-Error: connect ECONNREFUSED
-```
-
-**対処法**:
-```bash
-# PostgreSQLが完全に起動するまで待つ
-docker compose logs postgres
-
-# PostgreSQLのヘルスチェックが通っているか確認
-docker compose ps
-
-# GraphQLサーバーを再起動
-docker compose restart graphql-server
-```
-
-### 4. 完全なリセット手順
-
-すべてをクリーンな状態にする：
-
-```bash
-# すべてのコンテナとボリュームを削除
-docker compose down -v
-
-# イメージも削除する場合
-docker compose down -v --rmi all
-
-# 再度起動
-docker compose up -d
-```
-
-### 5. 個別コンテナの起動確認
-
-```bash
-# PostgreSQLのみ起動
-docker compose up -d postgres
-
-# ログ確認
-docker compose logs -f postgres
-
-# 起動が確認できたら、GraphQLサーバーを起動
-docker compose up -d graphql-server
-
-# ログ確認
-docker compose logs -f graphql-server
-
-# 最後にダッシュボードを起動
-docker compose up -d dashboard
-```
-
-### 6. PostgreSQLへの直接接続テスト
-
-```bash
-# コンテナ内でPostgreSQLに接続
-docker compose exec postgres psql -U hospital_user -d hospital_db
-
-# テーブル確認
-\dt
-
-# データ確認
-SELECT * FROM departments;
-SELECT COUNT(*) FROM outpatient_records;
-SELECT COUNT(*) FROM inpatient_records;
-
-# 終了
-\q
-```
-
-### 7. GraphQL APIのテスト
-
-PostgreSQLとGraphQLサーバーが起動したら：
-
-```bash
-# curlでテスト
-curl -X POST http://localhost:4000/graphql \
-  -H "Content-Type: application/json" \
-  -d '{"query":"{ departments { id name code } }"}'
-```
-
-### 8. ネットワーク関連の問題
-
-```bash
-# Dockerネットワークの確認
-docker network ls
-
-# コンテナのネットワーク設定確認
-docker compose exec graphql-server cat /etc/hosts
-docker compose exec graphql-server ping postgres
-```
-
-### 9. メモリ不足エラー
-
-```
-Cannot allocate memory
-```
-
-**対処法**: Docker Desktopのメモリ割り当てを増やす
-- Docker Desktop → Settings → Resources
-- Memory を 4GB 以上に設定
-
-### 10. ローカル開発モード（Dockerを使わない）
-
-Docker起動できない場合の代替方法：
-
-#### PostgreSQLの起動
-```bash
-# ローカルにPostgreSQLをインストール
-# Ubuntu/Debian
-sudo apt install postgresql postgresql-contrib
-
-# macOS
-brew install postgresql
-
-# データベース作成
-createdb hospital_db
-
-# 初期化スクリプト実行
-psql hospital_db < postgres/init.sql
-```
-
-#### GraphQLサーバーの起動
-```bash
-cd graphql-server
-npm install
-
-# 環境変数設定
-export DB_HOST=localhost
-export DB_PORT=5432
-export DB_NAME=hospital_db
-export DB_USER=postgres  # ローカルのユーザー名
-export DB_PASSWORD=''    # ローカルのパスワード
-
-npm start
-```
-
-#### ダッシュボードの起動
-```bash
-cd dashboard
-npm install
-
-# .envファイルを編集
-echo "VITE_GRAPHQL_URL=http://localhost:4000/graphql" > .env
-
-npm run dev
+# シェルスクリプトを使用
+./run-all-tests.sh  # Linux/Mac/WSL
+run-all-tests.bat   # Windows
 ```
 
 ---
 
-## 🆘 それでも解決しない場合
+## E2Eテストのエラー
 
-具体的なエラーメッセージを以下のコマンドで取得してください：
+### エラー: `Test failed: Timeout 30000ms exceeded`
+
+#### 原因
+Dockerサービスが起動していない、またはページがロードされない。
+
+#### 解決策
 
 ```bash
-docker compose up 2>&1 | tee error.log
+# 1. Dockerを起動
+docker compose up -d
+
+# 2. 起動確認
+docker compose ps
+# すべてのサービスが "Up" であることを確認
+
+# 3. ブラウザでアクセス確認
+# http://localhost:3000?staffId=admin001
+
+# 4. ログを確認
+docker compose logs -f
+
+# 5. 問題があればリビルド
+docker compose down
+docker compose up -d --build
 ```
 
-エラーログを共有していただければ、より具体的なサポートができます。
+### エラー: `Error: browserType.launch: Executable doesn't exist`
+
+#### 原因
+Playwrightのブラウザがインストールされていない。
+
+#### 解決策
+
+```bash
+cd e2e-tests
+npx playwright install
+```
+
+---
+
+## Docker関連のエラー
+
+### エラー: `Cannot connect to the Docker daemon`
+
+#### 原因
+Dockerが起動していない、またはDocker daemonが実行されていない。
+
+#### 解決策
+
+**Windows/Mac:**
+```bash
+# Docker Desktopを起動
+# またはタスクバー/メニューバーのDockerアイコンを確認
+```
+
+**Linux:**
+```bash
+# Docker serviceを起動
+sudo systemctl start docker
+
+# 起動確認
+sudo systemctl status docker
+```
+
+**WSL:**
+```bash
+# Windows側でDocker Desktopが起動しているか確認
+# WSLとの統合が有効になっているか確認
+# Docker Desktop > Settings > Resources > WSL Integration
+```
+
+### エラー: `port is already allocated`
+
+```
+Error response from daemon: driver failed programming external connectivity:
+Bind for 0.0.0.0:3000 failed: port is already allocated
+```
+
+#### 原因
+ポート3000、4000、または5432が既に使用されている。
+
+#### 解決策
+
+```bash
+# 1. 使用中のポートを確認
+# Windows
+netstat -ano | findstr :3000
+netstat -ano | findstr :4000
+
+# Linux/Mac
+lsof -i :3000
+lsof -i :4000
+
+# 2. プロセスを停止
+# Windows（管理者権限のPowerShell）
+Stop-Process -Id <PID>
+
+# Linux/Mac
+kill -9 <PID>
+
+# 3. 既存のDockerコンテナを停止
+docker compose down
+
+# 4. 再起動
+docker compose up -d
+```
+
+---
+
+## WSL環境でのエラー
+
+### エラー: `\\wsl.localhost\... path not found`
+
+#### 原因
+Windows側からWSLのパスにアクセスしようとしている。
+
+#### 解決策
+
+**WSL内で実行（推奨）:**
+```bash
+# WSLターミナルを開く
+wsl
+
+# プロジェクトディレクトリへ移動
+cd ~/webapp  # または /home/user/webapp
+
+# テストを実行
+npm run test:all
+```
+
+**Windows側から実行する場合:**
+```bash
+# PowerShellで
+wsl -d Ubuntu-20.04 -e bash -c "cd ~/webapp && npm run test:all"
+```
+
+### エラー: Docker network issues in WSL
+
+#### 原因
+WSL2のネットワーク設定の問題。
+
+#### 解決策
+
+```bash
+# 1. WSLを再起動
+# PowerShell（管理者権限）
+wsl --shutdown
+wsl
+
+# 2. Dockerを再起動
+docker compose down
+docker compose up -d
+
+# 3. ポートフォワーディングを再設定
+# PowerShell（管理者権限）
+.\wsl-port-forward.ps1
+```
+
+---
+
+## テスト実行のベストプラクティス
+
+### チェックリスト
+
+実行前に以下を確認：
+
+- [ ] 正しいディレクトリにいる（プロジェクトルート）
+  ```bash
+  pwd
+  # 出力: /home/user/webapp または類似のパス
+  ```
+
+- [ ] package.jsonが存在する
+  ```bash
+  ls package.json
+  ```
+
+- [ ] 依存関係がインストールされている
+  ```bash
+  npm run install:all
+  ```
+
+- [ ] Dockerが起動している（E2Eテストの場合）
+  ```bash
+  docker compose ps
+  ```
+
+- [ ] Playwrightがインストールされている（E2Eテストの場合）
+  ```bash
+  cd e2e-tests
+  npx playwright --version
+  ```
+
+### 推奨される実行順序
+
+```bash
+# 1. 最新版を取得
+git pull origin main
+
+# 2. 依存関係をインストール
+npm run install:all
+
+# 3. Dockerを起動（E2Eテストの場合）
+docker compose up -d
+
+# 4. テストを実行
+npm run test:all
+
+# または個別に実行
+npm run test:server:unit
+npm run test:server:integration
+npm run test:client
+npm run test:e2e
+```
+
+---
+
+## デバッグのヒント
+
+### サーバーテストのデバッグ
+
+```bash
+cd graphql-server
+
+# 詳細なログを表示
+npm test -- --verbose
+
+# 特定のテストファイルのみ実行
+npm test -- authResolvers.test.js
+
+# ウォッチモードで実行
+npm run test:watch
+```
+
+### クライアントテストのデバッグ
+
+```bash
+cd dashboard
+
+# UIを表示してデバッグ
+npm run test:watch
+
+# カバレッジを確認
+npm run test:coverage
+```
+
+### E2Eテストのデバッグ
+
+```bash
+cd e2e-tests
+
+# ブラウザを表示して実行
+npm run test:headed
+
+# デバッグモード
+npm run test:debug
+
+# 特定のテストのみ実行
+npm test -- dashboard.spec.js
+```
+
+---
+
+## よくある質問
+
+### Q: テストが遅い
+
+**A:** 並列実行を試してください：
+
+```bash
+# サーバーとクライアントを並列実行
+npm run test:server & npm run test:client
+
+# ただし、E2Eは分けて実行（Dockerを使うため）
+npm run test:e2e
+```
+
+### Q: テストがランダムに失敗する
+
+**A:** 以下を確認：
+
+1. Dockerが正常に動作しているか
+2. ネットワークが安定しているか
+3. システムリソース（メモリ、CPU）に余裕があるか
+4. 他のプロセスがポートを使っていないか
+
+### Q: カバレッジレポートが表示されない
+
+**A:** カバレッジコマンドを使用：
+
+```bash
+# サーバー
+cd graphql-server
+npm run test:coverage
+# coverage/lcov-report/index.html を開く
+
+# クライアント
+cd dashboard
+npm run test:coverage
+# coverage/index.html を開く
+```
+
+---
+
+## さらに困ったら
+
+1. **ドキュメントを確認**
+   - [TEST_QUICKSTART.md](./TEST_QUICKSTART.md)
+   - [TESTING.md](./TESTING.md)
+   - [README.md](./README.md)
+
+2. **Dockerログを確認**
+   ```bash
+   docker compose logs -f
+   ```
+
+3. **すべてクリーンアップして再起動**
+   ```bash
+   # Docker完全クリーンアップ
+   docker compose down -v
+   docker compose up -d --build
+   
+   # 依存関係を再インストール
+   npm run install:all
+   
+   # テストを実行
+   npm run test:all
+   ```
+
+4. **GitHubでIssueを作成**
+   - リポジトリ: https://github.com/hiro1966/DockerDashBord
+   - エラーメッセージ、実行環境、再現手順を記載
+
+---
+
+## まとめ
+
+**最も一般的な解決策:**
+
+1. `git pull origin main` で最新版を取得
+2. `npm run install:all` で依存関係をインストール
+3. `docker compose up -d` でDockerを起動
+4. `npm run test:all` でテストを実行
+
+これで大半の問題は解決します！🚀

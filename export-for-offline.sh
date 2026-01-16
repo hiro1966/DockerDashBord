@@ -10,7 +10,9 @@ echo ""
 
 # 作業ディレクトリ
 WORK_DIR="$HOME/hospital-offline-export"
-PROJECT_DIR="/home/user/webapp"
+# スクリプトが置かれているディレクトリを自動検出
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$SCRIPT_DIR"
 
 # 作業ディレクトリを作成
 mkdir -p "$WORK_DIR"

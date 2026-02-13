@@ -356,6 +356,69 @@ query {
 
 ## 🛠️ トラブルシューティング
 
+### 🔍 職員ID認証エラーのデバッグ
+
+「職員IDが見つかりません」エラーが発生した場合：
+
+#### クイックデバッグ（推奨）
+```bash
+cd ~/DockerDashBord  # または /home/user/webapp
+./debug-auth.sh admin001
+```
+
+このスクリプトは以下を自動実行します：
+- Dockerコンテナの状態確認
+- GraphQLサーバーのログ表示
+- データベース接続確認
+- 職員テーブルの内容確認
+- GraphQL APIテスト
+
+#### リアルタイムログ監視
+```bash
+# すべてのログを表示
+docker compose logs -f
+
+# GraphQLサーバーのログのみ
+docker compose logs -f graphql-server
+
+# 認証関連のログのみ
+docker compose logs -f graphql-server | grep -i "auth\|職員"
+```
+
+#### 詳細ログの見方
+
+**詳細ログが有効化されているため、以下のようなログが表示されます：**
+
+成功時：
+```
+[AUTH] 職員ID検証開始: admin001
+[DB] クエリ実行: SELECT s.id, s.name, s.job_type_code...
+[DB] ✅ クエリ成功: 1行 (15ms)
+[AUTH] ✅ 職員認証成功: システム管理者 (admin001)
+```
+
+失敗時：
+```
+[AUTH] 職員ID検証開始: invalid_id
+[DB] ✅ クエリ成功: 0行 (12ms)
+[AUTH] ❌ 職員が見つかりません: invalid_id
+[AUTH] 利用可能な職員IDを確認するには: SELECT id, name FROM staff LIMIT 10
+```
+
+#### テスト用職員ID
+
+| 職員ID | 氏名 | 役職 | 権限レベル |
+|--------|------|------|-----------|
+| admin001 | システム管理者 | システム管理者 | 99 |
+| director001 | 事務部長 | 事務部長 | 80 |
+| doctor001 | 山田太郎 | 医師 | 70 |
+| doctor002 | 佐藤花子 | 医師 | 70 |
+| nurse001 | 鈴木次郎 | 看護師 | 50 |
+
+**📖 詳細ドキュメント**: [DEBUG_AUTH_GUIDE.md](./DEBUG_AUTH_GUIDE.md)
+
+---
+
 ### データベース接続エラー
 ```bash
 # PostgreSQLコンテナの状態確認

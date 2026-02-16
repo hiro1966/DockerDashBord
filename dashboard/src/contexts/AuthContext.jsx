@@ -50,12 +50,17 @@ export const AuthProvider = ({ children }) => {
     }
   }, [])
 
-  const { data, error } = useQuery(VERIFY_STAFF, {
+  const { data, error, loading: queryLoading } = useQuery(VERIFY_STAFF, {
     variables: { staffId },
     skip: !staffId,
-    onCompleted: () => setLoading(false),
-    onError: () => setLoading(false),
   })
+
+  // useQueryの結果に基づいてローディング状態を更新
+  useEffect(() => {
+    if (staffId && !queryLoading) {
+      setLoading(false)
+    }
+  }, [staffId, queryLoading])
 
   useEffect(() => {
     if (data?.verifyStaff) {

@@ -11,10 +11,11 @@ const getGraphQLUrl = () => {
     return import.meta.env.VITE_GRAPHQL_URL
   }
   
-  // 現在のホスト名を使用してGraphQL URLを構築
+  // Nginxリバースプロキシを使用する場合（推奨）
+  // ダッシュボードと同じホスト・ポートで /graphql パスにアクセス
   const protocol = window.location.protocol
-  const hostname = window.location.hostname
-  return `${protocol}//${hostname}:4000/graphql`
+  const host = window.location.host  // hostname + port
+  return `${protocol}//${host}/graphql`
 }
 
 const httpLink = new HttpLink({

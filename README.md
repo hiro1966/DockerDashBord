@@ -69,13 +69,45 @@ docker-compose up -d
 
 各サービスが起動したら、以下のURLにアクセスできます：
 
+**Nginxリバースプロキシ経由（推奨）:**
+- **ダッシュボード**: http://localhost/?staffId=admin001
+- **GraphQL Playground**: http://localhost/graphql
+
+**直接アクセス（開発用）:**
 - **ダッシュボード**: http://localhost:3000?staffId=admin001
 - **GraphQL Playground**: http://localhost:4000/graphql
 - **PostgreSQL**: localhost:5432
 
 ### 🌐 他のパソコンからアクセスする
 
-#### 通常のDocker環境
+#### Nginxリバースプロキシ経由（推奨）⭐
+
+**最も簡単でトラブルが少ない方法です！**
+
+```bash
+# サーバーのIPアドレスを確認
+hostname -I
+# 例: 192.168.1.100
+```
+
+ブラウザでアクセス:
+```
+http://192.168.1.100/?staffId=admin001
+```
+
+**利点:**
+- ✅ 単一ポート（80）でアクセス
+- ✅ 認証エラー（ERR_CONNECTION_REFUSED）が発生しない
+- ✅ CORS問題が発生しない
+- ✅ ファイアウォール設定が簡単
+
+**詳細:** [EXTERNAL_ACCESS_GUIDE.md](./EXTERNAL_ACCESS_GUIDE.md)
+
+---
+
+#### 通常のDocker環境（従来方式）
+
+**注意:** この方法では、他端末から認証時に `localhost:4000` への接続エラーが発生する可能性があります。上記のNginxリバースプロキシを推奨します。
 詳細は [NETWORK_ACCESS.md](./NETWORK_ACCESS.md) を参照してください。
 
 #### WSL2環境（Windows）

@@ -51,5 +51,17 @@ services:
     volumes:
       - ./dashboard/src:/app/src
 
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    container_name: hospital-nginx
+    ports:
+      - "0.0.0.0:80:80"
+    depends_on:
+      - dashboard
+      - graphql-server
+    restart: unless-stopped
+
 volumes:
   postgres_data:
